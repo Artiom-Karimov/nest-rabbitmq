@@ -1,0 +1,17 @@
+services:
+  backend:
+    build:
+      dockerfile: ./Dockerfile
+    container_name: backend-api
+    restart: unless-stopped
+    networks:
+      - backend
+    ports:
+      - ${EXTERNAL_PORT:-80}:${INTERNAL_PORT:-3000}
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PORT=${INTERNAL_PORT:-3000}
+
+networks:
+  backend:
+    driver: bridge
