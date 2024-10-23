@@ -1,17 +1,14 @@
 services:
-  backend:
-    build:
-      dockerfile: ./Dockerfile
-    container_name: backend-api
+  rmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rmq
     restart: unless-stopped
-    networks:
-      - backend
     ports:
-      - ${EXTERNAL_PORT:-80}:${INTERNAL_PORT:-3000}
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - PORT=${INTERNAL_PORT:-3000}
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - nest-rabbit
 
 networks:
-  backend:
+  nest-rabbit:
     driver: bridge
