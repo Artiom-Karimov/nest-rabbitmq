@@ -6,6 +6,9 @@
 - Error handling
 - Auto-created durable exchange
 - Publishing restart-proof messages over exchange
+- Auto-bound queue with exchange assertion
+- Consuming/parsing messages
+- Async handler support with resolve -> ack, reject -> nack behavior
 
 ## How to start
 
