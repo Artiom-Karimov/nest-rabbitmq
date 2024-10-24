@@ -8,7 +8,7 @@
 - Publishing restart-proof messages over exchange
 - Auto-bound queue with exchange assertion
 - Consuming/parsing messages
-- Async handler support with resolve -> ack, reject -> nack behavior
+- Async handler support with ability to requeue unprocessed messages
 
 ## How to start
 

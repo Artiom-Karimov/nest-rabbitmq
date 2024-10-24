@@ -5,15 +5,12 @@ import amqp, {
 } from 'amqp-connection-manager';
 import { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import { config } from 'src/common/config';
-
-export type AMQPSubscription = {
-  exchange: string;
-  queue: string;
-  routingKey: string;
-  /** Limit immediately loaded messages */
-  prefetch: number;
-  consumer: (data: unknown) => Promise<void>;
-};
+import { assertExhausted } from 'src/common/assert-exhausted';
+import {
+  AMQPResult,
+  AMQPSubscription,
+  MessageConsumer,
+} from './amqp-subscription';
 
 @Injectable()
 export class AMQPSubscribeService implements OnModuleInit {
@@ -90,7 +87,7 @@ export class AMQPSubscribeService implements OnModuleInit {
    */
   private parseAndConsume(
     message: ConsumeMessage,
-    consumer: (data: unknown) => Promise<void>,
+    consumer: MessageConsumer,
   ): void {
     this.logger.log('Message received');
 
@@ -99,12 +96,35 @@ export class AMQPSubscribeService implements OnModuleInit {
       const json = message.content.toString();
       const data = JSON.parse(json) as unknown;
 
-      consumer(data)
-        .then(() => this.channel.ack(message))
-        .catch(() => this.channel.nack(message));
+      // Consumer should catch its own errors. If it throws, consider it as a fatal error
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises, promise/catch-or-return
+      consumer(data).then((result: AMQPResult) =>
+        this.processConsumeResult(message, result),
+      );
     } catch (error) {
       this.logger.error('Cannot parse message data', error);
       this.channel.nack(message);
     }
+  }
+
+  private processConsumeResult(
+    message: ConsumeMessage,
+    result: AMQPResult,
+  ): void {
+    if (result === AMQPResult.Processed) {
+      return this.channel.ack(message);
+    }
+
+    if (result === AMQPResult.InternalError) {
+      // If the data is correct, but server cannot handle it, requeue the message
+      return this.channel.nack(message, undefined, true);
+    }
+
+    if (result === AMQPResult.Unprocessable) {
+      // If there is something wrong with the data, don't requeue the message
+      return this.channel.nack(message, undefined, false);
+    }
+
+    return assertExhausted(result);
   }
 }

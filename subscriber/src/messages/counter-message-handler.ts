@@ -1,9 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { config } from 'src/common/config';
-import {
-  AMQPSubscribeService,
-  AMQPSubscription,
-} from './amqp-subscribe.service';
+import { AMQPSubscribeService } from './amqp-subscribe.service';
+import { AMQPResult, AMQPSubscription } from './amqp-subscription';
 
 @Injectable()
 export class CounterMessageHandler implements OnApplicationBootstrap {
@@ -24,10 +22,11 @@ export class CounterMessageHandler implements OnApplicationBootstrap {
     await this.amqp.subscribe(subscription);
   }
 
-  private handleMessage(data: unknown): Promise<void> {
+  private async handleMessage(data: unknown): Promise<AMQPResult> {
     this.logger.log('Message received', data);
+    await this.sleep();
 
-    return this.sleep();
+    return AMQPResult.Processed;
   }
 
   private async sleep(): Promise<void> {
