@@ -6,16 +6,17 @@ import amqp, {
 import { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import { config } from 'src/common/config';
 
+export type AMQPSubscription = {
+  exchange: string;
+  queue: string;
+  routingKey: string;
+  /** Limit immediately loaded messages */
+  prefetch: number;
+  consumer: (data: unknown) => Promise<void>;
+};
+
 @Injectable()
-export class AMQPConsumeService implements OnModuleInit {
-  private exchange: string = config.generatorConsumer.exchange;
-
-  private queue: string = config.generatorConsumer.queue;
-
-  private routingKey: string = config.generatorConsumer.routingKey;
-
-  private prefetch: number = config.generatorConsumer.prefetch;
-
+export class AMQPSubscribeService implements OnModuleInit {
   private connection: AmqpConnectionManager;
 
   private channel: ChannelWrapper;
@@ -25,16 +26,18 @@ export class AMQPConsumeService implements OnModuleInit {
   /** Use it to bind some usecase handler.
    * This service does not apply validation, so you need to perform it in handler
    */
-  public async subscribe(
-    consumer: (data: unknown) => Promise<void>,
-  ): Promise<void> {
+  public async subscribe(subscription: AMQPSubscription): Promise<void> {
+    await this.channel.addSetup((channel: ConfirmChannel) =>
+      this.bindQueue(channel, subscription),
+    );
+
     await this.channel.consume(
-      this.queue,
+      subscription.queue,
       (message) => {
-        this.parseAndConsume(message, consumer);
+        this.parseAndConsume(message, subscription.consumer);
       },
       {
-        prefetch: this.prefetch, // Limit immediately loaded messages
+        prefetch: subscription.prefetch,
         noAck: false, // Disable auto-acknowledgement
       },
     );
@@ -50,40 +53,35 @@ export class AMQPConsumeService implements OnModuleInit {
     );
 
     // You don't have to wait for connection to create channel
-    this.channel = this.connection.createChannel({
-      setup: (channel: ConfirmChannel) => this.setupChannel(channel),
-    });
+    this.channel = this.connection.createChannel();
   }
 
   private handleConnectionError(data: unknown): void {
     this.logger.error('Cannot connect to broker', data);
   }
 
-  private async setupChannel(channel: ConfirmChannel): Promise<void> {
-    this.logger.log('AMQP channel connected');
-
-    try {
-      await this.bindQueue(channel);
-    } catch (error) {
-      this.logger.error('Cannot subscribe to AMQP topic', error);
-    }
-  }
-
-  private async bindQueue(channel: ConfirmChannel): Promise<void> {
+  private async bindQueue(
+    channel: ConfirmChannel,
+    subscription: AMQPSubscription,
+  ): Promise<void> {
     /* You have to ensure that desired exchange exists before binding */
-    await channel.assertExchange(this.exchange, 'topic', {
+    await channel.assertExchange(subscription.exchange, 'topic', {
       durable: true, // Will survive after broker restart
       autoDelete: false, // Will not be destroyed if 0 queues are bound
     });
     this.logger.log('AMQP Exchange asserted');
 
-    await channel.assertQueue(this.queue, {
+    await channel.assertQueue(subscription.queue, {
       durable: true,
       autoDelete: false,
     });
     this.logger.log('AMQP Queue asserted');
 
-    await channel.bindQueue(this.queue, this.exchange, this.routingKey);
+    await channel.bindQueue(
+      subscription.queue,
+      subscription.exchange,
+      subscription.routingKey,
+    );
     this.logger.log('AMQP Queue bound to Exchange');
   }
 

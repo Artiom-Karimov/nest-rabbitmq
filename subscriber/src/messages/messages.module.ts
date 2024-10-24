@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AMQPConsumeService } from './amqp-consume.service';
-import { MessageHandler } from './message-handler';
+import { CounterMessageHandler } from './counter-message-handler';
+import { AMQPSubscribeService } from './amqp-subscribe.service';
 
-@Module({ providers: [AMQPConsumeService, MessageHandler] })
+@Module({ providers: [AMQPSubscribeService, CounterMessageHandler] })
 export class MessagesModule {}

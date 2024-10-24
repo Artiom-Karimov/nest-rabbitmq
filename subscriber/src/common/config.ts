@@ -40,6 +40,12 @@ const values = convict({
       doc: 'Messages to load immediately',
       format: Number,
     },
+    sleep: {
+      default: 1_000,
+      env: 'GENERATOR_SLEEP',
+      doc: 'Delay between messages',
+      format: Number,
+    },
   },
 });
 
