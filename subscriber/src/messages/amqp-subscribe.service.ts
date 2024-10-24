@@ -103,7 +103,7 @@ export class AMQPSubscribeService implements OnModuleInit {
       );
     } catch (error) {
       this.logger.error('Cannot parse message data', error);
-      this.channel.nack(message);
+      this.channel.nack(message, undefined, false);
     }
   }
 
