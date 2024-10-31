@@ -1,22 +1,28 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { config } from 'src/common/config';
-import { AMQPPublishService } from 'src/messages/amqp-publish.service';
+import { RabbitMQPublishService } from './rabbitmq-publish.service';
 
 @Injectable()
 export class MessageGenerator implements OnApplicationBootstrap {
   private messageCounter = 0;
 
-  private timeout: number = config.generator.intervalMillis;
+  private readonly exchange = config.amqp.exchange;
 
-  private routingKey: string = config.generator.routingKey;
+  private readonly timeout = config.generator.intervalMillis;
+
+  private readonly routingKey = config.generator.routingKey;
 
   constructor(
     private readonly logger: Logger,
-    private readonly service: AMQPPublishService,
+    private readonly service: RabbitMQPublishService,
   ) {}
 
-  onApplicationBootstrap(): void {
+  async onApplicationBootstrap(): Promise<void> {
     this.logger.log('Initializing generator');
+
+    await this.service.assertExchange(this.exchange);
+
+    // This should not be awaited
     this.sendForever().catch((error) => {
       this.logger.error('Error sending message', error);
       process.exit(1);
@@ -40,9 +46,8 @@ export class MessageGenerator implements OnApplicationBootstrap {
 
   private async send(): Promise<void> {
     try {
-      await this.service.publish({
-        routingKey: this.routingKey,
-        content: { value: this.messageCounter },
+      await this.service.publish(this.exchange, this.routingKey, {
+        value: this.messageCounter,
       });
 
       this.logger.log(`Message #${this.messageCounter} sent`);

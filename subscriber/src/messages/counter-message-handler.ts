@@ -1,32 +1,32 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { config } from 'src/common/config';
-import { AMQPSubscribeService } from './amqp-subscribe.service';
-import { AMQPResult, AMQPSubscription } from './amqp-subscription';
+import { RabbitMQConsumeService } from './rabbitmq-consume.service';
+import { RabbitConsumerResult, RabbitSubscription } from './rabbit-subscription';
 
 @Injectable()
 export class CounterMessageHandler implements OnApplicationBootstrap {
   constructor(
     private readonly logger: Logger,
-    private readonly amqp: AMQPSubscribeService,
+    private readonly service: RabbitMQConsumeService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const subscription: AMQPSubscription = {
+    const subscription: RabbitSubscription = {
       exchange: config.generatorConsumer.exchange,
       queue: config.generatorConsumer.queue,
-      routingKey: config.generatorConsumer.routingKey,
+      pattern: config.generatorConsumer.routingKey,
       prefetch: config.generatorConsumer.prefetch,
-      consumer: (data) => this.handleMessage(data),
+      consumer: (data: unknown) => this.handleMessage(data),
     };
 
-    await this.amqp.subscribe(subscription);
+    await this.service.subscribe(subscription);
   }
 
-  private async handleMessage(data: unknown): Promise<AMQPResult> {
+  private async handleMessage(data: unknown): Promise<RabbitConsumerResult> {
     this.logger.log('Message received', data);
     await this.sleep();
 
-    return AMQPResult.Processed;
+    return RabbitConsumerResult.Processed;
   }
 
   private async sleep(): Promise<void> {

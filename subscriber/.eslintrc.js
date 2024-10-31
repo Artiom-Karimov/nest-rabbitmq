@@ -28,6 +28,7 @@ module.exports = {
   rules: {
     'import/prefer-default-export': 'off',
     'import/no-default-export': 'warn',
+    'no-underscore-dangle': 'off',
     'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
     'class-methods-use-this': 'off',
     'generator-star-spacing': ['error', 'both'],
