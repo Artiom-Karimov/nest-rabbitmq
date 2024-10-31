@@ -10,12 +10,7 @@
     "start:dev": "dotenv -- nest start --watch",
     "start:debug": "dotenv -- nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
     "@nestjs/common": "10.4.5",
@@ -31,32 +26,10 @@
   },
   "devDependencies": {
     "@nestjs/schematics": "10.2.2",
-    "@nestjs/testing": "10.4.5",
     "@types/amqplib": "0.10.5",
     "@types/convict": "6.1.6",
     "@types/express": "5.0.0",
-    "@types/jest": "29.5.13",
     "@types/node": "22.7.7",
-    "@types/supertest": "6.0.2",
-    "@types/winston": "2.4.4",
-    "jest": "29.7.0",
-    "supertest": "7.0.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "@types/winston": "2.4.4"
   }
 }
