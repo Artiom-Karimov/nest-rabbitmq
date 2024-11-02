@@ -34,12 +34,7 @@ module.exports = {
     'generator-star-spacing': ['error', 'both'],
     'spaced-comment': ['error', 'always', { exceptions: ['TODO', 'FIXME'] }],
     'no-unused-vars': ['error', { varsIgnorePattern: '_' }],
-    'no-restricted-syntax': [
-      'error',
-      'ForInStatement',
-      'LabeledStatement',
-      'WithStatement',
-    ],
+    'no-restricted-syntax': ['error', 'ForInStatement', 'LabeledStatement'],
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'error',
     '@typescript-eslint/no-explicit-any': 'error',

@@ -9,6 +9,7 @@
 - Auto-bound queue with exchange assertion
 - Consuming/parsing messages
 - Async handler support with ability to requeue unprocessed messages
+- Using class-transformer/class-validator with consumer
 
 ## How to start
 
