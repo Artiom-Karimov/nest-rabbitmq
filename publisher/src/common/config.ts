@@ -23,7 +23,7 @@ const values = convict({
   },
   generator: {
     intervalMillis: {
-      default: 10_000,
+      default: 2_000,
       env: 'PUBLISH_INTERVAL_MILLIS',
       doc: 'Message generator frequency',
       format: Number,
