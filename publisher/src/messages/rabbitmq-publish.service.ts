@@ -22,11 +22,10 @@ export class RabbitMQPublishService {
     topic: string,
     message: T,
   ): Promise<void> {
-    const content = JSON.stringify(message);
     /* Note that amqp-connection-manager's publish is not the same as amqplib's publish.
       This method returns an actual Promise that resolves when broker confirms the message.
       It rejects if message cannot be sent or is refused by broker. */
-    await this.connection.channel.publish(exchange, topic, content, {
+    await this.connection.channel.publish(exchange, topic, message, {
       persistent: true, // Will survive broker restart
     });
   }

@@ -6,7 +6,8 @@ import {
   RabbitConsumer,
   RabbitConsumerResult,
   RabbitSubscription,
-} from './rabbit-subscription';
+} from './dto';
+import { RabbitDTOValidator } from './utils/rabbit-dto-validator';
 
 @Injectable()
 export class RabbitMQConsumeService {
@@ -16,17 +17,25 @@ export class RabbitMQConsumeService {
   ) {}
 
   /** Use it to bind some usecase handler.
-   * This service does not apply validation, so you need to perform it in handler
+   * T is return type.
+   * Validation of T is performed automatically with class-transformer & class-validator
    */
-  public async subscribe(subscription: RabbitSubscription): Promise<void> {
+  public async subscribe<T extends object>(
+    subscription: RabbitSubscription<T>,
+  ): Promise<void> {
     await this.connection.channel.addSetup((channel: ConfirmChannel) =>
       this.bindQueue(channel, subscription),
+    );
+
+    const validator = new RabbitDTOValidator<T>(
+      this.logger,
+      subscription.dtoClass,
     );
 
     await this.connection.channel.consume(
       subscription.queue,
       (message) => {
-        this.parseAndConsume(message, subscription.consumer);
+        this.parseAndConsume<T>(message, subscription.consumer, validator);
       },
       {
         prefetch: subscription.prefetch,
@@ -35,9 +44,9 @@ export class RabbitMQConsumeService {
     );
   }
 
-  private async bindQueue(
+  private async bindQueue<T>(
     channel: ConfirmChannel,
-    { exchange, queue, pattern }: RabbitSubscription,
+    { exchange, queue, pattern }: RabbitSubscription<T>,
   ): Promise<void> {
     try {
       await channel.assertExchange(exchange, 'topic', {
@@ -59,27 +68,36 @@ export class RabbitMQConsumeService {
     }
   }
 
-  /** Application usecases are usually async, but amqplib expects consume to be sync.
-   * message.content is a Buffer, so you need to parse it properly.
-   */
-  private parseAndConsume(
+  /** Application usecases are usually async, but amqplib expects consume to be sync */
+  private parseAndConsume<T extends object>(
     message: ConsumeMessage,
-    consumer: RabbitConsumer,
+    consumer: RabbitConsumer<T>,
+    validator: RabbitDTOValidator<T>,
   ): void {
-    try {
-      const json = message.content.toString();
-      // Type will be checked on consumer side
-      const data = JSON.parse(json) as unknown;
+    this.consumeIfValid(message, consumer, validator).catch(
+      (reason: unknown) => {
+        this.logger.error('Consuming rabbit message', reason);
+        this.processConsumeResult(message, RabbitConsumerResult.InternalError);
+      },
+    );
+  }
 
-      // Consumer should catch its own errors. If it throws, consider it as a fatal error
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises, promise/catch-or-return
-      consumer(data).then((result: RabbitConsumerResult) =>
-        this.processConsumeResult(message, result),
+  private async consumeIfValid<T extends object>(
+    message: ConsumeMessage,
+    consumer: RabbitConsumer<T>,
+    validator: RabbitDTOValidator<T>,
+  ): Promise<void> {
+    const value = await validator.validate(message.content.toString());
+    if (!value) {
+      return this.processConsumeResult(
+        message,
+        RabbitConsumerResult.Unprocessable,
       );
-    } catch (error) {
-      this.logger.error('Cannot parse message data', error);
-      this.connection.channel.nack(message, undefined, false);
     }
+
+    const result = await consumer(value);
+
+    return this.processConsumeResult(message, result);
   }
 
   private processConsumeResult(

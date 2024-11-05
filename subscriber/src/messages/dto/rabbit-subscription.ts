@@ -1,3 +1,5 @@
+import { ClassConstructor } from 'class-transformer';
+
 /** Message handler responds with one of these values */
 export enum RabbitConsumerResult {
   Processed = 'processed',
@@ -8,10 +10,10 @@ export enum RabbitConsumerResult {
 /** Message handler should declare async method for consuming messages.
  * This method should not throw any errors. It should return one of listed values
  */
-export type RabbitConsumer = (data: unknown) => Promise<RabbitConsumerResult>;
+export type RabbitConsumer<T> = (data: T) => Promise<RabbitConsumerResult>;
 
 /** Message handler subscribes with this data */
-export type RabbitSubscription = {
+export type RabbitSubscription<T> = {
   /** Exchange name */
   exchange: string;
   /** Queue name */
@@ -21,5 +23,7 @@ export type RabbitSubscription = {
   /** Limit immediately loaded messages */
   prefetch: number;
   /** Async processing function */
-  consumer: RabbitConsumer;
+  consumer: RabbitConsumer<T>;
+  /** DTO class with class-validator decorated fields */
+  dtoClass: ClassConstructor<T>;
 };
